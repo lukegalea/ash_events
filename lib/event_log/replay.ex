@@ -9,6 +9,8 @@ defmodule AshEvents.EventLog.Actions.Replay do
   require Ash.Query
   require Logger
 
+  alias AshEvents.Events.ActionWrapperHelpers
+
   defp get_replay_strategy(resource, action_name) do
     replay_config = AshEvents.Events.Info.events_replay_non_input_attribute_changes!(resource)
     Keyword.get(replay_config, action_name, :force_change)
@@ -85,6 +87,13 @@ defmodule AshEvents.EventLog.Actions.Replay do
     }
   end
 
+  # The captured as_of of the original write, as an action option — nil for
+  # events recorded without one (backward compatible: replay then resolves
+  # the write to replay wall-clock, exactly as before this change).
+  defp restore_as_of(event) do
+    ActionWrapperHelpers.restore_captured_as_of(Map.get(event, :metadata))
+  end
+
   defp get_record_if_exists(resource, record_id, opts) do
     case Ash.get(resource, record_id, opts) do
       {:ok, record} -> {:ok, record}
@@ -99,6 +108,10 @@ defmodule AshEvents.EventLog.Actions.Replay do
     context = prepare_replay_context(event, resource)
     merged_context = Map.merge(opts[:context] || %{}, context)
     updated_opts = Keyword.put(opts, :context, merged_context)
+
+    # Temporal resources: re-invoke at the ORIGINAL instant (ash_events#103).
+    # Events without a captured as_of replay at wall-clock, as before.
+    updated_opts = Keyword.put(updated_opts, :as_of, restore_as_of(event))
 
     changeset = Ash.Changeset.for_create(resource, action, input, updated_opts)
     Ash.create!(changeset)
@@ -123,6 +136,7 @@ defmodule AshEvents.EventLog.Actions.Replay do
     context = prepare_replay_context(event, resource)
     merged_context = Map.merge(opts[:context] || %{}, context)
     updated_opts = Keyword.put(opts, :context, merged_context)
+    updated_opts = Keyword.put(updated_opts, :as_of, restore_as_of(event))
 
     changeset = Ash.Changeset.for_update(existing_record, update_action.name, input, updated_opts)
 
@@ -154,6 +168,7 @@ defmodule AshEvents.EventLog.Actions.Replay do
         context = prepare_replay_context(event, resource)
         merged_context = Map.merge(opts[:context] || %{}, context)
         updated_opts = Keyword.put(opts, :context, merged_context)
+        updated_opts = Keyword.put(updated_opts, :as_of, restore_as_of(event))
         changeset = Ash.Changeset.for_update(record, action, input, updated_opts)
         Ash.update!(changeset)
 
@@ -172,6 +187,7 @@ defmodule AshEvents.EventLog.Actions.Replay do
         context = prepare_replay_context(event, resource)
         merged_context = Map.merge(opts[:context] || %{}, context)
         updated_opts = Keyword.put(opts, :context, merged_context)
+        updated_opts = Keyword.put(updated_opts, :as_of, restore_as_of(event))
         changeset = Ash.Changeset.for_destroy(record, action, %{}, updated_opts)
         Ash.destroy!(changeset)
 
