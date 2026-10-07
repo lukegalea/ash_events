@@ -265,7 +265,10 @@ defmodule AshEvents.EventLog.Actions.Replay do
       true ->
         input.resource
     end
-    |> Ash.Query.sort(id: :asc)
+    # Chronological order: the recorded order of the writes. Sorting by the
+    # random event id scrambles temporal replays (split/truncate points
+    # would re-execute out of order).
+    |> Ash.Query.sort(occurred_at: :asc, id: :asc)
     |> then(fn query ->
       if cloak_vault,
         do: Ash.Query.load(query, [:data, :metadata, :changed_attributes]),
