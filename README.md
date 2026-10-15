@@ -483,6 +483,8 @@ This structure captures all the essential information about each event:
 - **actor primary key**: Primary key of actor that ran the action (multiple actor types are supported)
 - **data**: Attributes and arguments that were provided to the action
 - **changed_attributes**: Attributes modified during action execution (defaults, auto-generated values, business logic changes)
+
+In `data` and `changed_attributes`, `sensitive?` values are stored as `nil` unless the event log is encrypted; see [Sensitive Attributes](#sensitive-attributes).
 - **metadata**: Additional contextual information about the event
 - **version**: Version number of the event
 - **occurred_at**: Timestamp when the event was recorded
@@ -529,6 +531,21 @@ replay_overrides do
   end
 end
 ```
+
+### Sensitive Attributes
+
+On an event log without a `cloak_vault`, an attribute or argument marked `sensitive?: true` is stored as `nil`, both in `data` (action input) and in `changed_attributes` (values set by changes, defaults and hooks, such as a password hash). The key is kept, so the event still records that the field was written.
+
+Replay then restores those attributes as `nil`. When replay must restore a sensitive attribute, or its value is already protected (ciphertext, for example), list it on the resource:
+
+```elixir
+events do
+  event_log MyApp.Events.Event
+  store_sensitive_attributes [:hashed_password]
+end
+```
+
+The list covers attributes only; sensitive arguments, such as a plaintext password, are never stored on a plain event log. An encrypted event log (`cloak_vault`) stores every value, so the option is not allowed there.
 
 ### Public Field Configuration
 

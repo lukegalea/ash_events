@@ -71,6 +71,8 @@ defmodule AshEvents.Accounts.User do
     event_log AshEvents.EventLogs.EventLog
     ignore_actions [:create_v1]
     current_action_versions create: 1, create_upsert: 1
+    # Replay restores password hashes, so sign-in works on replayed users.
+    store_sensitive_attributes [:hashed_password]
     create_timestamp :created_at
     update_timestamp :updated_at
   end

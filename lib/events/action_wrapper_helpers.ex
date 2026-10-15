@@ -104,6 +104,19 @@ defmodule AshEvents.Events.ActionWrapperHelpers do
     end
   end
 
+  # Whether an attribute's or argument's value may be written to an event.
+  #
+  # The same rule covers `data` (action input) and `changed_attributes`
+  # (attributes set by changes, defaults and hooks): a `sensitive?` value is
+  # stored as `nil` unless the event log is encrypted or the attribute is
+  # listed in `store_sensitive_attributes`. The key is kept, so the event
+  # still shows that the field was written.
+  defp store_value?(attr_or_arg, resource, event_log_resource) do
+    not attr_or_arg.sensitive? or AshEvents.EventLog.Info.cloaked?(event_log_resource) or
+      (is_struct(attr_or_arg, Ash.Resource.Attribute) and
+         attr_or_arg.name in AshEvents.Events.Info.events_store_sensitive_attributes!(resource))
+  end
+
   defp cast_and_dump_value(value, attr_or_arg) do
     case Ash.Type.cast_input(attr_or_arg.type, value, attr_or_arg.constraints) do
       {:ok, cast_value} -> dump_value(cast_value, attr_or_arg)
@@ -153,14 +166,14 @@ defmodule AshEvents.Events.ActionWrapperHelpers do
 
         cond do
           attr = Ash.Resource.Info.attribute(changeset.resource, key) ->
-            if not attr.sensitive? or AshEvents.EventLog.Info.cloaked?(event_log_resource) do
+            if store_value?(attr, changeset.resource, event_log_resource) do
               Map.put(acc, key, cast_and_dump_value(value, attr))
             else
               Map.put(acc, key, nil)
             end
 
           arg = Enum.find(changeset.action.arguments, &(&1.name == key)) ->
-            if not arg.sensitive? or AshEvents.EventLog.Info.cloaked?(event_log_resource) do
+            if store_value?(arg, changeset.resource, event_log_resource) do
               Map.put(acc, key, cast_and_dump_value(value, arg))
             else
               Map.put(acc, key, nil)
@@ -219,8 +232,15 @@ defmodule AshEvents.Events.ActionWrapperHelpers do
           acc
         else
           case Ash.Resource.Info.attribute(changeset.resource, attr_name) do
-            nil -> acc
-            attr -> Map.put(acc, attr_name, dump_value(value, attr))
+            nil ->
+              acc
+
+            attr ->
+              if store_value?(attr, changeset.resource, event_log_resource) do
+                Map.put(acc, attr_name, dump_value(value, attr))
+              else
+                Map.put(acc, attr_name, nil)
+              end
           end
         end
       end)

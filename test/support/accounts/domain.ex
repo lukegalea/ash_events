@@ -21,6 +21,11 @@ defmodule AshEvents.Accounts do
 
     resource AshEvents.Accounts.Token
 
+    resource AshEvents.Accounts.Credential do
+      define :create_credential, action: :create
+      define :rotate_credential, action: :rotate
+    end
+
     resource AshEvents.Accounts.UserUuidV7 do
       define :get_user_uuidv7_by_id, action: :get_by_id, args: [:id]
       define :create_user_uuidv7, action: :create

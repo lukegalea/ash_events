@@ -27,6 +27,7 @@ events do
   only_actions [:create, :update, :destroy]
   current_action_versions create: 2, update: 3, destroy: 2
   replay_non_input_attribute_changes [create_v1: :as_arguments, update_v2: :force_change]
+  store_sensitive_attributes [:hashed_password]
 end
 
 ```
@@ -46,6 +47,7 @@ end
 | [`create_timestamp`](#events-create_timestamp){: #events-create_timestamp } | `atom` |  | The name of the create timestamp attribute on the resource |
 | [`update_timestamp`](#events-update_timestamp){: #events-update_timestamp } | `atom` |  | The name of the update timestamp attribute on the resource |
 | [`replay_non_input_attribute_changes`](#events-replay_non_input_attribute_changes){: #events-replay_non_input_attribute_changes } | `keyword` | `[]` | Configure how non-input attribute changes are handled during replay for each action. Options are :force_change (apply via force_change_attributes) or :as_arguments (merge into action input). Defaults to :force_change for all actions. |
+| [`store_sensitive_attributes`](#events-store_sensitive_attributes){: #events-store_sensitive_attributes } | `list(atom)` | `[]` | Sensitive attributes whose values are stored in events even though the event log is not encrypted. By default a `sensitive?` attribute or argument is stored as `nil` in both `data` and `changed_attributes` unless the event log has a `cloak_vault`. List an attribute here when replay must restore it (for example a password hash) or when its value is already protected (for example ciphertext). Not allowed with an encrypted event log, which stores every value. |
 
 
 
