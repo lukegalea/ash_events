@@ -7,6 +7,29 @@ defmodule AshEvents.Events.ActionWrapperHelpers do
   Helper functions used by the action wrappers.
   """
 
+  @doc """
+  A data layer's result, as a manual action must return it.
+
+  AshPostgres answers a failed write with `{:error, :no_rollback, error}`, a shape Ash itself
+  understands when it runs the data layer, but a manual action's return is validated and that
+  three-tuple raises `Ash.Error.Framework` (so `Ash.update/2` raises instead of returning an
+  error). The error is returned plain, and the transaction rolls back with the event written
+  before it.
+  """
+  def manual_result({:error, :no_rollback, error}), do: {:error, error}
+  def manual_result(result), do: result
+
+  @doc """
+  A data layer's destroy result, as a manual destroy must return it: the destroyed record
+  on success, the error (see `manual_result/1`) on failure.
+  """
+  def manual_destroy_result(result, record) do
+    case manual_result(result) do
+      {:error, error} -> {:error, error}
+      _ -> {:ok, record}
+    end
+  end
+
   def dump_value(nil, _attribute), do: nil
 
   def dump_value(values, %{type: {:array, attr_type}} = attribute) do
