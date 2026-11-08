@@ -23,7 +23,10 @@ defmodule AshEvents.DestroyActionWrapper do
 
     if Map.get(merged_ctx, :ash_events_replay?) do
       data_layer = Ash.Resource.Info.data_layer(changeset.resource)
-      data_layer.update(changeset.resource, changeset)
+
+      changeset.resource
+      |> data_layer.update(changeset)
+      |> AshEvents.Events.ActionWrapperHelpers.manual_result()
     else
       opts =
         ctx
@@ -39,7 +42,10 @@ defmodule AshEvents.DestroyActionWrapper do
       )
 
       data_layer = Ash.Resource.Info.data_layer(changeset.resource)
-      data_layer.update(changeset.resource, changeset)
+
+      changeset.resource
+      |> data_layer.update(changeset)
+      |> AshEvents.Events.ActionWrapperHelpers.manual_result()
     end
   end
 
@@ -81,8 +87,9 @@ defmodule AshEvents.DestroyActionWrapper do
     if Map.get(merged_ctx, :ash_events_replay?) do
       data_layer = Ash.Resource.Info.data_layer(changeset.resource)
 
-      data_layer.destroy(changeset.resource, changeset)
-      {:ok, changeset.data}
+      changeset.resource
+      |> data_layer.destroy(changeset)
+      |> AshEvents.Events.ActionWrapperHelpers.manual_destroy_result(changeset.data)
     else
       opts =
         ctx
@@ -100,8 +107,9 @@ defmodule AshEvents.DestroyActionWrapper do
 
       data_layer = Ash.Resource.Info.data_layer(changeset.resource)
 
-      data_layer.destroy(changeset.resource, changeset)
-      {:ok, changeset.data}
+      changeset.resource
+      |> data_layer.destroy(changeset)
+      |> AshEvents.Events.ActionWrapperHelpers.manual_destroy_result(changeset.data)
     end
   end
 end

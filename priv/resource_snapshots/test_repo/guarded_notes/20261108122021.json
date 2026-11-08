@@ -1,0 +1,74 @@
+{
+  "attributes": [
+    {
+      "allow_nil?": false,
+      "default": "fragment(\"gen_random_uuid()\")",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": true,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "id",
+      "type": "uuid"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "body",
+      "type": "text"
+    },
+    {
+      "allow_nil?": true,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "deleted_at",
+      "type": "utc_datetime_usec"
+    }
+  ],
+  "base_filter": null,
+  "check_constraints": [],
+  "create_table_options": null,
+  "custom_indexes": [],
+  "custom_statements": [
+    {
+      "after_tables": [],
+      "code?": false,
+      "down": "DROP FUNCTION IF EXISTS guarded_notes_refuse()",
+      "global?": false,
+      "name": "guarded_notes_refuse_function",
+      "up": "CREATE OR REPLACE FUNCTION guarded_notes_refuse() RETURNS trigger AS $$\nBEGIN\n  IF current_setting('ash_events_test.refuse', true) = TG_OP THEN\n    RAISE EXCEPTION 'ash_error: %', json_build_object(\n      'exception', 'Elixir.Ash.Error.Changes.InvalidChanges',\n      'input', json_build_object('message', 'refused by the database')\n    )::text;\n  END IF;\n\n  IF TG_OP = 'DELETE' THEN\n    RETURN OLD;\n  END IF;\n\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;\n"
+    },
+    {
+      "after_tables": [],
+      "code?": false,
+      "down": "DROP TRIGGER IF EXISTS guarded_notes_refuse ON guarded_notes",
+      "global?": false,
+      "name": "guarded_notes_refuse_trigger",
+      "up": "CREATE TRIGGER guarded_notes_refuse\n  BEFORE UPDATE OR DELETE ON guarded_notes\n  FOR EACH ROW EXECUTE FUNCTION guarded_notes_refuse()\n"
+    }
+  ],
+  "has_create_action": false,
+  "hash": "34C4788EC0053095AF413C318246EE7D19A43415A9574A3AE7F9D3807796A61A",
+  "identities": [],
+  "multitenancy": {
+    "attribute": null,
+    "global": null,
+    "strategy": null
+  },
+  "repo": "Elixir.AshEvents.TestRepo",
+  "schema": null,
+  "table": "guarded_notes",
+  "temporal": null
+}

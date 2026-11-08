@@ -9,6 +9,9 @@ defmodule AshEvents.EventLogs.ClearRecords do
 
   def clear_records!(_opts) do
     {_, nil} = TestRepo.delete_all("temporal_coverages")
+    # TRUNCATE fires no row triggers, so a test that has the table refuse
+    # deletes can still replay.
+    TestRepo.query!("TRUNCATE guarded_notes")
     {_, nil} = TestRepo.delete_all("article_tags")
     {_, nil} = TestRepo.delete_all("comments")
     {_, nil} = TestRepo.delete_all("user_roles")

@@ -13,7 +13,10 @@ defmodule AshEvents.UpdateActionWrapper do
 
     if Map.get(merged_ctx, :ash_events_replay?) do
       data_layer = Ash.Resource.Info.data_layer(changeset.resource)
-      data_layer.update(changeset.resource, changeset)
+
+      changeset.resource
+      |> data_layer.update(changeset)
+      |> AshEvents.Events.ActionWrapperHelpers.manual_result()
     else
       opts =
         ctx
@@ -34,7 +37,10 @@ defmodule AshEvents.UpdateActionWrapper do
       )
 
       data_layer = Ash.Resource.Info.data_layer(changeset.resource)
-      data_layer.update(changeset.resource, changeset)
+
+      changeset.resource
+      |> data_layer.update(changeset)
+      |> AshEvents.Events.ActionWrapperHelpers.manual_result()
     end
   end
 end
