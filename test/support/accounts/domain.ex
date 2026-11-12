@@ -111,6 +111,13 @@ defmodule AshEvents.Accounts do
 
     resource AshEvents.Accounts.ArticleTag
 
+    resource AshEvents.Accounts.GuardedNote do
+      define :create_guarded_note, action: :create
+      define :update_guarded_note, action: :update
+      define :destroy_guarded_note, action: :destroy
+      define :soft_destroy_guarded_note, action: :soft_destroy
+    end
+
     resource AshEvents.Accounts.TemporalSubscription
     resource AshEvents.Accounts.TrackedSubscription
     resource AshEvents.Accounts.TrackedSubscriptionNoRecordedAt

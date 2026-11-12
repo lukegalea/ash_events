@@ -23,7 +23,10 @@ defmodule AshEvents.DestroyActionWrapper do
 
     if Map.get(merged_ctx, :ash_events_replay?) do
       data_layer = Ash.Resource.Info.data_layer(changeset.resource)
-      data_layer.update(changeset.resource, changeset)
+
+      changeset.resource
+      |> data_layer.update(changeset)
+      |> AshEvents.Events.ActionWrapperHelpers.manual_result()
     else
       opts =
         ctx
@@ -40,7 +43,10 @@ defmodule AshEvents.DestroyActionWrapper do
         |> AshEvents.Events.ActionWrapperHelpers.temporal_occurred_at()
 
       with :ok <- reject_atomics(changeset),
-           {:ok, record} <- data_layer.update(changeset.resource, changeset) do
+           {:ok, record} <-
+             changeset.resource
+             |> data_layer.update(changeset)
+             |> AshEvents.Events.ActionWrapperHelpers.manual_result() do
         occurred_at = temporal_occurred_at || DateTime.utc_now()
         notifications = create_event!(changeset, merged_ctx, occurred_at, module_opts, opts)
 
@@ -157,7 +163,7 @@ defmodule AshEvents.DestroyActionWrapper do
     case data_layer.destroy(changeset.resource, changeset) do
       :ok -> {:ok, changeset.data}
       {:error, _} = error -> error
-      {:error, :no_rollback, _} = error -> error
+      {:error, :no_rollback, error} -> {:error, error}
     end
   end
 end

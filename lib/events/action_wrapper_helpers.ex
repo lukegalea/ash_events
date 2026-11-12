@@ -8,6 +8,19 @@ defmodule AshEvents.Events.ActionWrapperHelpers do
   """
 
   @doc """
+  A data layer's result, as a manual action must return it.
+
+  AshPostgres answers a failed write with `{:error, :no_rollback, error}` (for example an
+  `ash_error:` exception raised by a trigger, or an atomic `error/2` expression). Ash
+  understands that shape when it runs the data layer itself, but a manual action's return is
+  validated and the three-tuple raises `Ash.Error.Framework`, so `Ash.update/2` raised instead
+  of returning an error. The error is returned plain, and the transaction rolls back with any
+  event written in it.
+  """
+  def manual_result({:error, :no_rollback, error}), do: {:error, error}
+  def manual_result(result), do: result
+
+  @doc """
   Reverses `dump_to_embedded` for a single attribute value.
 
   Used during replay to convert stored values (e.g., base64-encoded binaries)

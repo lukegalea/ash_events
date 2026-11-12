@@ -14,7 +14,10 @@ defmodule AshEvents.UpdateActionWrapper do
     cond do
       Map.get(merged_ctx, :ash_events_replay?) ->
         data_layer = Ash.Resource.Info.data_layer(changeset.resource)
-        data_layer.update(changeset.resource, changeset)
+
+        changeset.resource
+        |> data_layer.update(changeset)
+        |> AshEvents.Events.ActionWrapperHelpers.manual_result()
 
       unchanged?(changeset) ->
         # Ash skips the data layer write for an update that changes nothing, but
@@ -57,8 +60,12 @@ defmodule AshEvents.UpdateActionWrapper do
 
     data_layer = Ash.Resource.Info.data_layer(changeset.resource)
 
-    with {:ok, record} <- data_layer.update(changeset.resource, changeset) do
-      {:ok, record, %{notifications: notifications}}
+    changeset.resource
+    |> data_layer.update(changeset)
+    |> AshEvents.Events.ActionWrapperHelpers.manual_result()
+    |> case do
+      {:ok, record} -> {:ok, record, %{notifications: notifications}}
+      other -> other
     end
   end
 
